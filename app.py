@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 import google.generativeai as genai
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from datetime import datetime
 
 # --- ページ基本設定 ---
@@ -136,14 +136,16 @@ def extract_text(response):
 
 # --- Googleスプレッドシートへの一括書き込み関数 ---
 def save_logs_to_spreadsheet(user_id, messages):
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
     creds_dict = dict(st.secrets["gcp_service_account"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     client = gspread.authorize(creds)
     
     sheet = client.open_by_key(SPREADSHEET_ID)
     
-    # 被験者IDの名前でタブを取得または新規作成
     try:
         worksheet = sheet.worksheet(user_id)
         worksheet.clear()
@@ -162,7 +164,6 @@ def save_logs_to_spreadsheet(user_id, messages):
         ])
     
     worksheet.update(rows)
-
 # --- セッション初期化 ---
 if "user_id" not in st.session_state:
     st.session_state.user_id = ""
